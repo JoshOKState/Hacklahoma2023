@@ -1,16 +1,56 @@
-# This is a sample Python script.
+from flask import Flask, render_template, Response, request
+from camera import VideoCamera
+import time
+import os
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+app = Flask(__name__)
 
 
-# Press the green button in the gutter to run the script.
+# app = Flask(__name__, template_folder='/var/www/html/templates')
+
+# background process happening without any refreshing
+@app.route('/left')
+def left():
+    print("Left")
+    os.system("python servo.py 1 2 0.1 1")
+    return ("nothing")
+
+
+@app.route('/center')
+def center():
+    print("Center")
+    os.system("python servo.py 89 90 0.3 1")
+    return ("nothing")
+
+
+@app.route('/right')
+def right():
+    print("Right")
+    os.system("python servo.py 179 180 0.1 1")
+    return ("nothing")
+
+
+@app.route('/', methods=['GET', 'POST'])
+def move():
+    result = ""
+    if request.method == 'POST':
+        return render_template('index.html', res_str=result)
+
+    return render_template('index.html')
+
+
+def gen(camera):
+    while True:
+        frame = camera.get_frame()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(gen(VideoCamera()),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    app.run(host='0.0.0.0', debug=True, threaded=True)
